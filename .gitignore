@@ -52,4 +52,5 @@ Mkfile.old
 dkms.conf
 
 a.out
+ft_ping
 /.vscode/
