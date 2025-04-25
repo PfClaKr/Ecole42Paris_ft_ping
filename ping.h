@@ -2,8 +2,10 @@
 #define PING_H
 
 #define PING_USEC 1000000
-#define TIMEOUT_SEC 1000000
+#define TIMEOUT_SEC 1
+#define PACKET_SIZE 64
 #define _POSIX_C_SOURCE 200122L
+#define _DEFAULT_SOURCE
 
 #include <stdio.h>
 #include <string.h>
@@ -34,6 +36,7 @@ typedef struct s_rtt_stat
 	double max;
 	double sum;
 	int count;
+	double s;
 } t_rtt_stat;
 
 #endif
