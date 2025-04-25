@@ -3,6 +3,7 @@
 
 #define PING_USEC 1000000
 #define TIMEOUT_SEC 1000000
+#define _POSIX_C_SOURCE 200122L
 
 #include <stdio.h>
 #include <string.h>
@@ -11,6 +12,7 @@
 #include <signal.h>
 #include <sys/time.h>
 #include <netinet/ip_icmp.h>
+#include <netinet/ip.h>
 #include <errno.h>
 #include <sys/types.h>
 #include <unistd.h>
