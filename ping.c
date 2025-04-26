@@ -47,8 +47,8 @@ int init_icmp_packet(char *packet, int sequence)
 
 	hdr->type = ICMP_ECHO;
 	hdr->code = 0;
-	hdr->un.echo.id = getpid() & 0xFFFF;
-	hdr->un.echo.sequence = sequence;
+	hdr->un.echo.id = htons(getpid() & 0xFFFF);
+	hdr->un.echo.sequence = htons(sequence);
 	memset(packet + sizeof(struct icmphdr), 0xAA, sizeof(packet) - sizeof(struct icmphdr));
 	hdr->checksum = checksum(packet, sizeof(packet));
 	sizeof(struct icmphdr);
@@ -149,19 +149,14 @@ void dump_packet(const uint8_t *packet)
 	inet_ntop(AF_INET, &ip->saddr, src_buf, INET_ADDRSTRLEN);
 	inet_ntop(AF_INET, &ip->daddr, dst_buf, INET_ADDRSTRLEN);
 	printf("%s  %s\n", src_buf, dst_buf);
-	
-	// ICMP header original header
+
 	struct iphdr *orig_ip = (struct iphdr *)(icmp + 1);
-    struct icmphdr *orig_icmp = (struct icmphdr *)((uint8_t *)orig_ip + orig_ip->ihl * 4);
-    printf("ICMP: type %d, code %d, size %lu, id 0x%04x, seq 0x%x\n",
-           orig_icmp->type, orig_icmp->code,
+	struct icmphdr *orig_icmp = (struct icmphdr *)((uint8_t *)orig_ip + orig_ip->ihl * 4);
+	printf("ICMP: type %d, code %d, size %lu, id 0x%04x, seq 0x%04x\n",
+		   orig_icmp->type, orig_icmp->code,
 		   sizeof(struct icmphdr) * 8,
-           ntohs(orig_icmp->un.echo.id),
-		   ntohs(orig_icmp->un.echo.sequence)); // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ <<<<
-	// printf("ICMP: type %d, code %d, size %lu, id 0x%04x, seq 0x%04x\n",
-	// 	   icmp->type, icmp->code,
-	// 	   sizeof(struct icmphdr),
-	// 	   ntohs(icmp->un.echo.id), ntohs(icmp->un.echo.sequence));
+		   ntohs(orig_icmp->un.echo.id),
+		   ntohs(orig_icmp->un.echo.sequence));
 }
 
 void send_ping(char *host, int sockfd, struct addrinfo *send_res, t_opts *opts)
@@ -173,7 +168,7 @@ void send_ping(char *host, int sockfd, struct addrinfo *send_res, t_opts *opts)
 	char recv_packet[1024];
 	struct sockaddr_in recv_res;
 	t_rtt_stat rtt;
-	
+
 	int count = opts->count;
 	memset(&rtt, 0, sizeof(t_rtt_stat));
 	while (g_flag_ping)
@@ -236,7 +231,7 @@ void send_ping(char *host, int sockfd, struct addrinfo *send_res, t_opts *opts)
 		{
 			count--;
 			if (count == 0)
-				break ;
+				break;
 		}
 		if (g_flag_ping)
 			usleep(PING_USEC);
@@ -245,13 +240,6 @@ void send_ping(char *host, int sockfd, struct addrinfo *send_res, t_opts *opts)
 	close(sockfd);
 }
 
-// 92 bytes from 192.168.0.1: Time to live exceeded
-// IP Hdr Dump:
-//  4500 0054 930f 4000 0101 8566 c0a8 0011 df82 c0f7
-// Vr HL TOS  Len   ID Flg  off TTL Pro  cks      Src      Dst     Data
-//  4  5  00 0054 930f   2 0000  01  01 8566 192.168.0.17  223.130.192.247
-// ICMP: type 8, code 0, size 64, id 0x3737, seq 0x0000
-
 void init_opts(t_opts *opts)
 {
 	opts->verbose = OPT_VERBOSE;
@@ -259,24 +247,24 @@ void init_opts(t_opts *opts)
 	opts->timeout = OPT_TIMEOUT;
 	opts->linger = OPT_LINGER;
 	opts->count = OPT_COUNT;
-	opts->quiet =  OPT_QUIET;
+	opts->quiet = OPT_QUIET;
 }
 
 int parse_opt(char *optarg, long long minval, long long maxval)
 {
-	int val = 0;
+	long val = 0;
 	char *endptr = NULL;
 
 	val = strtol(optarg, &endptr, 10);
-	if (endptr == optarg || *endptr != '\0')																	// no digits found || trash after number
+	if (endptr == optarg || *endptr != '\0')
 	{
-		printf("ping: invalid argument: '%s'\n", optarg);														// iputils ping error output -- cross check with inetutils
-		return -1;																								// return code of iputils -- cross check with inetutils
+		printf("ping: invalid value (`%s' near `%s')\n", optarg, optarg);
+		return -1;
 	}
-	if (val < minval || val > maxval || errno != 0)																// errno for (over/under)flow
+	if (val < minval || val > maxval || errno != 0)
 	{
-		printf("ping: invalid argument: '%d': out of range: %lld <= value <= %lld\n", val, minval, maxval);		// iputils ping error output -- cross check with inetutils
-		return -1;																								// return code of iputils -- cross check with inetutils
+		printf("ping: option value too big: %ld\n", val);
+		return -1;
 	}
 	return val;
 }
@@ -295,70 +283,69 @@ int parse_opts(int ac, char **av, t_opts *opts)
 		{"linger", required_argument, 0, 'W'},
 		{"count", required_argument, 0, 'c'},
 		{"quiet", no_argument, 0, 'q'},
-		{0, 0, 0, 0}
-	};
+		{0, 0, 0, 0}};
 	while ((opt = getopt_long(ac, av, ":?vW:c:qw:", opt_long, NULL)) != -1)
 	{
 		int temp = 0;
 		switch (opt)
 		{
-			case 'v':
-				opts->verbose = 1;
-				break;
-			case 'q':
-				opts->quiet = 1;
-				break ;
-			case 1:
-				temp = parse_opt(optarg, OPT_TTL_MIN, OPT_TTL_MAX);
-				if (temp == -1)
-					return 1;																		// check the return code
-				opts->ttl = temp;
-				break;
-			case 'w':
-				temp = parse_opt(optarg, OPT_TIMEOUT_MIN, OPT_TIMEOUT_MAX);
-				if (temp == -1)
-					return 1;																		// check the return code
-				opts->timeout = temp;
-				break;
-			case 'W':
-				temp = parse_opt(optarg, OPT_LINGER_MIN, OPT_LINGER_MAX);
-				if (temp == -1)
-					return 1;																		// check the return code
-				opts->linger = temp;
-				break;
-			case 'c':
-				temp = parse_opt(optarg, OPT_COUNT_MIN, OPT_COUNT_MAX);
-				if (temp == -1)
-					return 1;																		// check the return code
-				opts->count = temp;
-				break;
-			case 2:
-				// fall through
-			case '?':
-				if (optopt != 0)
-				{
-					printf("ping: invalid option -- '%c'\n", optopt);
-					printf("Try 'ping --help' or 'ping --usage' for more information.\n");
-					return 64;
-				}
-				else
-				{
-					printf("usage: ping [-vcwWq --ttl] <hostname>\n");
-					return 2;
-				}
-			case ':':
-				printf("ping: required argument\n");												// self defined message -- have to check in inetutils environment.
-				return 64;																			// also check the return code
-			default:
-				printf("ping: invalid option -- '%c'\n", opt);
-				printf("Try 'ping --help' or 'ping --usage' for more information.\n");				// --help --usage? - we dont have thses flags -- have to make it?
+		case 'v':
+			opts->verbose = 1;
+			break;
+		case 'q':
+			opts->quiet = 1;
+			break;
+		case 1:
+			temp = parse_opt(optarg, OPT_TTL_MIN, OPT_TTL_MAX);
+			if (temp == -1)
+				return 1;
+			opts->ttl = temp;
+			break;
+		case 'w':
+			temp = parse_opt(optarg, OPT_TIMEOUT_MIN, OPT_TIMEOUT_MAX);
+			if (temp == -1)
+				return 1;
+			opts->timeout = temp;
+			break;
+		case 'W':
+			temp = parse_opt(optarg, OPT_LINGER_MIN, OPT_LINGER_MAX);
+			if (temp == -1)
+				return 1;
+			opts->linger = temp;
+			break;
+		case 'c':
+			temp = parse_opt(optarg, OPT_COUNT_MIN, OPT_COUNT_MAX);
+			if (temp == -1)
+				return 1;
+			opts->count = temp;
+			break;
+		case 2:
+			// fall through
+		case '?':
+			if (optopt != 0)
+			{
+				printf("ping: invalid option -- '%c'\n", optopt);
+				printf("Try 'ping --help' or 'ping --usage' for more information.\n");
 				return 64;
+			}
+			else
+			{
+				printf("usage: ping [-vcwWq --ttl] <hostname>\n");
+				return 2;
+			}
+		case ':':
+			printf("ping: required argument\n"); // self defined message -- have to check in inetutils environment.
+			return 64;							 // also check the return code
+		default:
+			printf("ping: invalid option -- '%c'\n", opt);
+			printf("Try 'ping --help' or 'ping --usage' for more information.\n");
+			return 64;
 		}
 	}
 	if (!av[optind])
 	{
 		printf("ping: missing host operand\n");
-		printf("Try 'ping --help' or 'ping --usage' for more information.\n");						// --help --usage? - we dont have thses flags -- have to make it?
+		printf("Try 'ping --help' or 'ping --usage' for more information.\n");
 		return 64;
 	}
 	return 0;
@@ -387,7 +374,7 @@ int main(int ac, char **av)
 	struct timeval timeout;
 	memset(&timeout, 0, sizeof(timeout));
 	timeout.tv_sec = opts.linger;
-	timeout.tv_usec = 0; // it might be random garbage
+	timeout.tv_usec = 0;
 	setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
 	setsockopt(sockfd, IPPROTO_IP, IP_TTL, &opts.ttl, sizeof(opts.ttl));
 
@@ -396,9 +383,9 @@ int main(int ac, char **av)
 	inet_ntop(res->ai_family, &addr->sin_addr, ip_addr, sizeof(ip_addr));
 	printf("PING %s (%s): %d data bytes", av[optind], ip_addr, PACKET_SIZE - (int)sizeof(struct icmphdr));
 	if (opts.verbose)
-		printf(", id 0x%x = %d", htons(getpid() & 0xFFFF), getpid() & 0xFFFF);
+		printf(", id 0x%04x = %d", getpid() & 0xFFFF, getpid() & 0xFFFF);
 	printf("\n");
-	
+
 	signal(SIGINT, sig_handler);
 	signal(SIGALRM, sig_handler);
 	alarm(opts.timeout);
@@ -407,14 +394,27 @@ int main(int ac, char **av)
 	return 0;
 }
 
-// ? - help					[v]
-// v - verbose				[v]
+/*
+	for option -c -w -W --ttl, 0 is not allowed and error message is
+		ping: option value too small: 0
+	and negative value is not allowed also but message is
+		ping: option value too big : -12312
+		(can not understand why is too big)
+	and option -c he takes all of integer value without error message of parse_opt,
+	it work properly.
+	root@debian:~# ping -c 124124141423452352345234524512 8.8.8.8    <---------------
+	PING 8.8.8.8 (8.8.8.8): 56 data bytes
+	64 bytes from 8.8.8.8: icmp_seq=0 ttl=56 time=36.672 ms
+	64 bytes from 8.8.8.8: icmp_seq=1 ttl=56 time=36.734 ms
+	^C--- 8.8.8.8 ping statistics ---
+	2 packets transmitted, 2 packets received, 0% packet loss
+	round-trip min/avg/max/stddev = 36.672/36.703/36.734/0.031 ms
+	root@debian:~# ping -c -124124141423452352345234524512 8.8.8.8    <---------------
+	PING 8.8.8.8 (8.8.8.8): 56 data bytes
+	64 bytes from 8.8.8.8: icmp_seq=0 ttl=56 time=39.564 ms
+	64 bytes from 8.8.8.8: icmp_seq=1 ttl=56 time=37.871 ms
+	^C--- 8.8.8.8 ping statistics ---
 
-// w - timeout				[v]
-// W - wait for response	[v]
-// q - supress				[v]
-// i - interval				[ ]		// didn't do because: parse double (2ms) requires additional parse logic
-// n - numeric				[ ]		// didn't do because:
-// c - count				[v]
-// p - pattern				[ ]		// didn't do because: no test environment - inetutils
-// ttl - time to live		[v]
+	and for line 348, i dont know how to can test it...
+	i have to learn this in monday with you.
+*/
