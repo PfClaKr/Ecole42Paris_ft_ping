@@ -69,7 +69,7 @@ Icmp_error parse_recv_packet(char *packet, int recv_len)
 		return ICMP_TIME_EXCEEDED_ERROR;
 	if (icmp_hdr->type != ICMP_ECHOREPLY)
 		return ICMP_ERROR;
-	if (icmp_hdr->un.echo.id != (getpid() & 0xFFFF))
+	if (icmp_hdr->un.echo.id != htons((getpid() & 0xFFFF)))
 		return ICMP_ERROR;
 	return ICMP_NORMAL;
 }
@@ -339,7 +339,7 @@ int parse_opts(int ac, char **av, t_opts *opts)
 				return 2;
 			}
 		case ':':
-			printf("ping: option requires an argument -- '%c'\n", optopt); // self defined message -- have to check in inetutils environment.
+			printf("ping: option requires an argument -- '%c'\n", optopt);
 			printf("Try 'ping --help' or 'ping --usage' for more information.\n");
 			return 64;
 		default:
