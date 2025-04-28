@@ -250,20 +250,25 @@ void init_opts(t_opts *opts)
 	opts->quiet = OPT_QUIET;
 }
 
-int parse_opt(char *optarg, long long minval, long long maxval)
+int parse_opt(char *optarg, long long maxval, int allow_zero)
 {
-	long val = 0;
+	unsigned long val = 0;
 	char *endptr = NULL;
 
-	val = strtol(optarg, &endptr, 10);
+	val = strtoul(optarg, &endptr, 10);
 	if (endptr == optarg || *endptr != '\0')
 	{
-		printf("ping: invalid value (`%s' near `%s')\n", optarg, optarg);
+		printf("ping: invalid value (`%s' near `%s')\n", optarg, endptr);
 		return -1;
 	}
-	if (val < minval || val > maxval || errno != 0)
+	if (val == 0 && !allow_zero)
 	{
-		printf("ping: option value too big: %ld\n", val);
+		printf("ping: option value too small: %s\n", optarg);
+		return -1;
+	}
+	if (val > maxval || errno != 0)
+	{
+		printf("ping: option value too big: %s\n", optarg);
 		return -1;
 	}
 	return val;
@@ -296,25 +301,25 @@ int parse_opts(int ac, char **av, t_opts *opts)
 			opts->quiet = 1;
 			break;
 		case 1:
-			temp = parse_opt(optarg, OPT_TTL_MIN, OPT_TTL_MAX);
+			temp = parse_opt(optarg, OPT_TTL_MAX, 0);
 			if (temp == -1)
 				return 1;
 			opts->ttl = temp;
 			break;
 		case 'w':
-			temp = parse_opt(optarg, OPT_TIMEOUT_MIN, OPT_TIMEOUT_MAX);
+			temp = parse_opt(optarg, OPT_TIMEOUT_MAX, 0);
 			if (temp == -1)
 				return 1;
 			opts->timeout = temp;
 			break;
 		case 'W':
-			temp = parse_opt(optarg, OPT_LINGER_MIN, OPT_LINGER_MAX);
+			temp = parse_opt(optarg, OPT_LINGER_MAX, 0);
 			if (temp == -1)
 				return 1;
 			opts->linger = temp;
 			break;
 		case 'c':
-			temp = parse_opt(optarg, OPT_COUNT_MIN, OPT_COUNT_MAX);
+			temp = parse_opt(optarg, OPT_COUNT_MAX, 1);
 			if (temp == -1)
 				return 1;
 			opts->count = temp;
