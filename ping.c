@@ -334,8 +334,9 @@ int parse_opts(int ac, char **av, t_opts *opts)
 				return 2;
 			}
 		case ':':
-			printf("ping: required argument\n"); // self defined message -- have to check in inetutils environment.
-			return 64;							 // also check the return code
+			printf("ping: option requires an argument -- '%c'\n", optopt); // self defined message -- have to check in inetutils environment.
+			printf("Try 'ping --help' or 'ping --usage' for more information.\n");
+			return 64;
 		default:
 			printf("ping: invalid option -- '%c'\n", opt);
 			printf("Try 'ping --help' or 'ping --usage' for more information.\n");
