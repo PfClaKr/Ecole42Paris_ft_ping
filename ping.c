@@ -399,28 +399,3 @@ int main(int ac, char **av)
 	freeaddrinfo(res);
 	return 0;
 }
-
-/*
-	for option -c -w -W --ttl, 0 is not allowed and error message is
-		ping: option value too small: 0
-	and negative value is not allowed also but message is
-		ping: option value too big : -12312
-		(can not understand why is too big)
-	and option -c he takes all of integer value without error message of parse_opt,
-	it work properly.
-	root@debian:~# ping -c 124124141423452352345234524512 8.8.8.8    <---------------
-	PING 8.8.8.8 (8.8.8.8): 56 data bytes
-	64 bytes from 8.8.8.8: icmp_seq=0 ttl=56 time=36.672 ms
-	64 bytes from 8.8.8.8: icmp_seq=1 ttl=56 time=36.734 ms
-	^C--- 8.8.8.8 ping statistics ---
-	2 packets transmitted, 2 packets received, 0% packet loss
-	round-trip min/avg/max/stddev = 36.672/36.703/36.734/0.031 ms
-	root@debian:~# ping -c -124124141423452352345234524512 8.8.8.8    <---------------
-	PING 8.8.8.8 (8.8.8.8): 56 data bytes
-	64 bytes from 8.8.8.8: icmp_seq=0 ttl=56 time=39.564 ms
-	64 bytes from 8.8.8.8: icmp_seq=1 ttl=56 time=37.871 ms
-	^C--- 8.8.8.8 ping statistics ---
-
-	and for line 348, i dont know how to can test it...
-	i have to learn this in monday with you.
-*/
