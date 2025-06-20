@@ -194,7 +194,7 @@ void send_ping(char *host, int sockfd, struct addrinfo *send_res, t_opts *opts)
 				break;
 			if (errno == EAGAIN || errno == EWOULDBLOCK)
 			{
-				fprintf(stderr, "Request timeout for icmp_seq %d\n", sequence);
+				// fprintf(stderr, "Request timeout for icmp_seq %d\n", sequence);
 				if (g_flag_ping)
 					usleep(PING_USEC);
 				continue;
@@ -221,7 +221,7 @@ void send_ping(char *host, int sockfd, struct addrinfo *send_res, t_opts *opts)
 						break;
 					if (errno == EAGAIN || errno == EWOULDBLOCK)
 					{
-						fprintf(stderr, "Request timeout for icmp_seq %d\n", sequence);
+						// fprintf(stderr, "Request timeout for icmp_seq %d\n", sequence);
 						if (g_flag_ping)
 							usleep(PING_USEC);
 						continue;
