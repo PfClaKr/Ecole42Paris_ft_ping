@@ -228,7 +228,7 @@ void send_ping(char *host, int sockfd, struct addrinfo *send_res, t_opts *opts)
 					}
 				}
 				gettimeofday(&recv_time, NULL);
-				double time_diff = get_time_diff(&send_time, &recv_time);
+				time_diff = get_time_diff(&send_time, &recv_time);
 				e = parse_recv_packet(recv_packet, recv_len);
 			}
 		}
