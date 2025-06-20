@@ -204,13 +204,33 @@ void send_ping(char *host, int sockfd, struct addrinfo *send_res, t_opts *opts)
 		double time_diff = get_time_diff(&send_time, &recv_time);
 		Icmp_error e;
 		e = parse_recv_packet(recv_packet, recv_len);
-		if (e == ICMP_ERROR || e == ICMP_DUPLICATE_ERROR)
+		if (e == ICMP_ERROR)
 		{
 			if (g_flag_ping)
 				usleep(PING_USEC);
-			if (e == ICMP_DUPLICATE_ERROR)
-				sequence--;
 			continue;
+		}
+		if (e == ICMP_DUPLICATE_ERROR)
+		{
+			while (e != ICMP_NORMAL)
+			{
+				recv_len = recvfrom(sockfd, recv_packet, sizeof(recv_packet), 0, (struct sockaddr *)&recv_res, &recv_res_len);
+				if (recv_len < 0)
+				{
+					if (errno == EINTR)
+						break;
+					if (errno == EAGAIN || errno == EWOULDBLOCK)
+					{
+						fprintf(stderr, "Request timeout for icmp_seq %d\n", sequence);
+						if (g_flag_ping)
+							usleep(PING_USEC);
+						continue;
+					}
+				}
+				gettimeofday(&recv_time, NULL);
+				double time_diff = get_time_diff(&send_time, &recv_time);
+				e = parse_recv_packet(recv_packet, recv_len);
+			}
 		}
 		update_rtt(&rtt, time_diff);
 		char ip_addr[16];
