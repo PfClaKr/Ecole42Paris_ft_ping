@@ -70,7 +70,7 @@ Icmp_error parse_recv_packet(char *packet, int recv_len)
 	if (icmp_hdr->type != ICMP_ECHOREPLY)
 		return ICMP_ERROR;
 	if (icmp_hdr->un.echo.id != htons((getpid() & 0xFFFF)))
-		return ICMP_ERROR;
+		return ICMP_DUPLICATE_ERROR;
 	return ICMP_NORMAL;
 }
 
@@ -204,11 +204,12 @@ void send_ping(char *host, int sockfd, struct addrinfo *send_res, t_opts *opts)
 		double time_diff = get_time_diff(&send_time, &recv_time);
 		Icmp_error e;
 		e = parse_recv_packet(recv_packet, recv_len);
-		if (e == ICMP_ERROR)
+		if (e == ICMP_ERROR || e == ICMP_DUPLICATE_ERROR)
 		{
-			printf("ICMP error\n");
 			if (g_flag_ping)
 				usleep(PING_USEC);
+			if (e == ICMP_DUPLICATE_ERROR)
+				sequence--;
 			continue;
 		}
 		update_rtt(&rtt, time_diff);

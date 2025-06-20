@@ -30,6 +30,7 @@ typedef enum Icmp_error
 	ICMP_TIME_EXCEEDED_ERROR,
 	ICMP_ERROR,
 	ICMP_NORMAL,
+	ICMP_DUPLICATE_ERROR,
 } Icmp_error;
 
 #define OPT_VERBOSE 0
