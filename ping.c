@@ -183,7 +183,7 @@ void send_ping(char *host, int sockfd, struct addrinfo *send_res, t_opts *opts)
 		{
 			if (g_flag_ping)
 				usleep(PING_USEC);
-			printf("ping: sending packet: Netword is unreachable\n");
+			printf("ping: sending packet: Network is unreachable\n");
 			exit(1);
 		}
 		socklen_t recv_res_len = sizeof(recv_res);
