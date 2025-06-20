@@ -116,7 +116,7 @@ void print_result(char *host, int sequence, int recv_count, t_rtt_stat rtt)
 	if (rtt.count > 0)
 		stddev = sqrt(rtt.s / rtt.count);
 	printf("round-trip min/avg/max/stddev = %.3f/%.3f/%.3f/%.3f ms\n", rtt.min, rtt.avg, rtt.max, stddev);
-}
+i
 
 void dump_packet(const uint8_t *packet)
 {
@@ -183,8 +183,8 @@ void send_ping(char *host, int sockfd, struct addrinfo *send_res, t_opts *opts)
 		{
 			if (g_flag_ping)
 				usleep(PING_USEC);
-			printf("sento function fail\n");
-			continue;
+			printf("ping: sending packet: Netword is unreachable\n");
+			exit(1);
 		}
 		socklen_t recv_res_len = sizeof(recv_res);
 		int recv_len = recvfrom(sockfd, recv_packet, sizeof(recv_packet), 0, (struct sockaddr *)&recv_res, &recv_res_len);
