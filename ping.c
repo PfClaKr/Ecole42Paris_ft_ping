@@ -116,7 +116,7 @@ void print_result(char *host, int sequence, int recv_count, t_rtt_stat rtt)
 	if (rtt.count > 0)
 		stddev = sqrt(rtt.s / rtt.count);
 	printf("round-trip min/avg/max/stddev = %.3f/%.3f/%.3f/%.3f ms\n", rtt.min, rtt.avg, rtt.max, stddev);
-i
+}
 
 void dump_packet(const uint8_t *packet)
 {
