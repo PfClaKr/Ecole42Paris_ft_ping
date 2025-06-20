@@ -68,7 +68,11 @@ Icmp_error parse_recv_packet(char *packet, int recv_len)
 	if (icmp_hdr->type == ICMP_TIME_EXCEEDED)
 		return ICMP_TIME_EXCEEDED_ERROR;
 	if (icmp_hdr->type != ICMP_ECHOREPLY)
+	{
+		if (icmp_hdr->type == 8)
+			return ICMP_NORMAL;
 		return ICMP_ERROR;
+	}
 	if (icmp_hdr->un.echo.id != htons((getpid() & 0xFFFF)))
 		return ICMP_DUPLICATE_ERROR;
 	return ICMP_NORMAL;
@@ -115,10 +119,11 @@ void print_result(char *host, int sequence, int recv_count, t_rtt_stat rtt)
 	double stddev = 0;
 	if (rtt.count > 0)
 		stddev = sqrt(rtt.s / rtt.count);
-	printf("round-trip min/avg/max/stddev = %.3f/%.3f/%.3f/%.3f ms\n", rtt.min, rtt.avg, rtt.max, stddev);
+	if (recv_count > 0)
+		printf("round-trip min/avg/max/stddev = %.3f/%.3f/%.3f/%.3f ms\n", rtt.min, rtt.avg, rtt.max, stddev);
 }
 
-void dump_packet(const uint8_t *packet)
+void dump_packet(const uint8_t *packet, char ip_orig[16])
 {
 	const struct iphdr *ip = (const struct iphdr *)packet;
 	const struct icmphdr *icmp = (const struct icmphdr *)(packet + ip->ihl * 4);
@@ -145,10 +150,9 @@ void dump_packet(const uint8_t *packet)
 		   ip->protocol,
 		   ntohs(ip->check));
 
-	char src_buf[INET_ADDRSTRLEN], dst_buf[INET_ADDRSTRLEN];
-	inet_ntop(AF_INET, &ip->saddr, src_buf, INET_ADDRSTRLEN);
+	char dst_buf[INET_ADDRSTRLEN];
 	inet_ntop(AF_INET, &ip->daddr, dst_buf, INET_ADDRSTRLEN);
-	printf("%s  %s\n", src_buf, dst_buf);
+	printf("%s  %s\n", dst_buf, ip_orig);
 
 	struct iphdr *orig_ip = (struct iphdr *)(icmp + 1);
 	struct icmphdr *orig_icmp = (struct icmphdr *)((uint8_t *)orig_ip + orig_ip->ihl * 4);
@@ -159,7 +163,7 @@ void dump_packet(const uint8_t *packet)
 		   ntohs(orig_icmp->un.echo.sequence));
 }
 
-void send_ping(char *host, int sockfd, struct addrinfo *send_res, t_opts *opts)
+void send_ping(char *host, int sockfd, struct addrinfo *send_res, t_opts *opts, char ip_orig[16])
 {
 	int sequence = -1;
 	int recv_count = 0;
@@ -240,14 +244,14 @@ void send_ping(char *host, int sockfd, struct addrinfo *send_res, t_opts *opts)
 		{
 			fprintf(stderr, "%d bytes from %s: Time to live exceeded\n", payload_len, ip_addr);
 			if (opts->verbose == 1)
-				dump_packet(recv_packet);
+				dump_packet(recv_packet, ip_orig);
 		}
 		else
 		{
 			if (!opts->quiet)
 				printf("%d bytes from %s: icmp_seq=%d ttl=%d time=%.3f ms\n", payload_len, ip_addr, sequence, ((struct iphdr *)recv_packet)->ttl, time_diff);
+			++recv_count;
 		}
-		++recv_count;
 		if (opts->count > 0)
 		{
 			count--;
@@ -416,7 +420,7 @@ int main(int ac, char **av)
 	signal(SIGINT, sig_handler);
 	signal(SIGALRM, sig_handler);
 	alarm(opts.timeout);
-	send_ping(av[optind], sockfd, res, &opts);
+	send_ping(av[optind], sockfd, res, &opts, ip_addr);
 	freeaddrinfo(res);
 	return 0;
 }

@@ -42,7 +42,7 @@ typedef enum Icmp_error
 
 #define OPT_TTL_MIN 0
 #define OPT_TTL_MAX MAXTTL
-#define OPT_COUNT_MIN 1
+#define OPT_COUNT_MIN 10
 #define OPT_COUNT_MAX INT64_MAX
 #define OPT_TIMEOUT_MIN 0
 #define OPT_TIMEOUT_MAX INT32_MAX
